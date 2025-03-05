@@ -1,31 +1,42 @@
--- Criação do GUI
-local screenGui = Instance.new("ScreenGui")
-local button = Instance.new("TextButton")
+-- Configuração inicial
+local players = game:GetService("Players")
+local localPlayer = players.LocalPlayer
 
--- Configurando o ScreenGui
-screenGui.Name = "RemoveFallDamageGui"
-screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+-- Função para criar linhas coloridas
+local function createESPLine(target)
+    local line = Drawing.new("Line")
+    line.Color = Color3.new(math.random(), math.random(), math.random()) -- Linhas coloridas aleatórias
+    line.Thickness = 2
+    line.Transparency = 1
 
--- Configurando o botão
-button.Name = "RemoveFallDamageButton"
-button.Parent = screenGui
-button.BackgroundColor3 = Color3.new(0.5, 0.5, 0.5)
-button.Size = UDim2.new(0, 200, 0, 50)
-button.Position = UDim2.new(0.5, -100, 0.5, -25)
-button.Text = "Remover Dano de Queda"
+    -- Atualizando a linha
+    game:GetService("RunService").RenderStepped:Connect(function()
+        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+            local targetPos = target.Character.HumanoidRootPart.Position
+            local camera = workspace.CurrentCamera
+            local screenPos, onScreen = camera:WorldToViewportPoint(targetPos)
 
--- Função para desativar o dano de queda
-local function removeFallDamage()
-    local player = game.Players.LocalPlayer
-    player.CharacterAdded:Connect(function(character)
-        character:WaitForChild("Humanoid").StateChanged:Connect(function(_, newState)
-            if newState == Enum.HumanoidStateType.Freefall then
-                character.Humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+            if onScreen then
+                line.From = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y) -- Posição inicial (base da tela)
+                line.To = Vector2.new(screenPos.X, screenPos.Y) -- Posição do jogador na tela
+                line.Visible = true
+            else
+                line.Visible = false
             end
-        end)
+        else
+            line.Visible = false
+        end
     end)
 end
 
--- Conectando o botão à função
-button.MouseButton1Click:Connect(removeFallDamage)
+-- Adicionando ESP para outros jogadores
+for _, player in pairs(players:GetPlayers()) do
+    if player ~= localPlayer then
+        createESPLine(player)
+    end
+end
 
+-- Atualizando o ESP quando novos jogadores entram
+players.PlayerAdded:Connect(function(newPlayer)
+    createESPLine(newPlayer)
+end)
